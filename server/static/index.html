@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>React Client</title>
+
+        <script
+            crossorigin
+            src="https://unpkg.com/react@17.0.2/umd/react.development.js"
+        ></script>
+        <script
+            crossorigin
+            src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.development.js"
+        ></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+        <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
+
+        <link rel="stylesheet" href="/output.css" />
+    </head>
+    <body>
+        <div id="react-app"></div>
+
+        <script type="text/babel">
+            class Image extends React.Component {
+                constructor() {
+                    super();
+                    this.state = {
+                        checked: false,
+                    };
+                }
+
+                handleCheckboxChange = () => {
+                    this.setState({ checked: !this.state.checked }, () => {
+                        this.props.toggleFile(this.props.fileName);
+                    });
+                };
+
+                componentDidMount = () => {
+                    this.setState({
+                        checked: this.props.checked
+                            ? this.props.checked
+                            : this.state.checked,
+                    });
+                };
+
+                render() {
+                    return (
+                        <div>
+                            <figure className="relative p-1">
+                                <div className="relative">
+                                    <img
+                                        className="h-auto max-w-full rounded-lg"
+                                        src={`/upload/${this.props.fileName}`}
+                                        alt="image description"
+                                    />
+                                    <div className="absolute top-0.5 left-2">
+                                        <input
+                                            id="default-checkbox"
+                                            type="checkbox"
+                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2 bg-white border-gray-600"
+                                            checked={this.state.checked}
+                                            onChange={this.handleCheckboxChange.bind(
+                                                this
+                                            )}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="absolute top-0.5 right-0.5 text-white bg-transparent rounded-lg text-sm p-1.5 ml-auto inline-flex items-center hover:bg-gray-800"
+                                        onClick={() => {
+                                            this.props.removeFiles([
+                                                this.props.fileName,
+                                            ]);
+                                        }}
+                                    >
+                                        <svg
+                                            className="w-5 h-5"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path>
+                                        </svg>
+                                        <span className="sr-only">
+                                            Close modal
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="absolute bottom-0.5 right-0.5 text-white bg-transparent rounded-lg text-sm p-1.5 ml-auto inline-flex items-center hover:bg-gray-800"
+                                        onClick={() => {
+                                            this.props.openDialog(
+                                                this.props.fileName
+                                            );
+                                        }}
+                                    >
+                                        <box-icon
+                                            type="solid"
+                                            color="currentColor"
+                                            name="edit"
+                                        ></box-icon>
+                                        <span className="sr-only">Rename</span>
+                                    </button>
+                                </div>
+
+                                <figcaption className="mt-2 text-sm text-center text-gray-400">
+                                    {this.props.fileName}
+                                </figcaption>
+                            </figure>
+                        </div>
+                    );
+                }
+            }
+            class Images extends React.Component {
+                constructor() {
+                    super();
+                    this.state = {
+                        files: [],
+                        oldFileName: "",
+                        newFileName: "",
+                        button: null,
+                    };
+                }
+
+                refreshFiles = async () => {
+                    const result = await fetch(
+                        "http://192.168.1.30:3000/getFiles"
+                    );
+                    const data = await result.json();
+                    const files = data.files.map((el) => {
+                        return { fileName: el, checked: false };
+                    });
+                    files.sort((a, b) => {
+                        if (a.fileName >= b.fileName) {
+                            return 1;
+                        } else {
+                            return -1;
+                        }
+                    });
+
+                    this.setState({
+                        files: files,
+                    });
+                };
+
+                openDialog = (oldFileName) => {
+                    this.setState({ oldFileName }, () => {
+                        this.state.button.click();
+                    });
+                };
+
+                toggleFile = (fileName) => {
+                    let files = this.state.files;
+                    const selectedFile = files.find(
+                        (el) => el.fileName === fileName
+                    );
+
+                    if (selectedFile.checked) {
+                        selectedFile.checked = false;
+                    } else {
+                        selectedFile.checked = true;
+                    }
+
+                    this.setState({
+                        files: files,
+                    });
+                };
+
+                selectAllFiles = () => {
+                    let files = this.state.files;
+                    for (const file of files) {
+                        file.checked = true;
+                    }
+
+                    this.setState({
+                        files: files,
+                    });
+                };
+
+                deselectAllFiles = () => {
+                    let files = this.state.files;
+                    for (const file of files) {
+                        file.checked = false;
+                    }
+
+                    this.setState({
+                        files: files,
+                    });
+                };
+
+                removeFiles = async (fileNames) => {
+                    const options = {
+                        method: "POST",
+                        headers: {
+                            Accept: "application/json, text/plain, */*",
+                            "Content-type": "application/json",
+                        },
+                        body: JSON.stringify({ fileNames: fileNames }),
+                    };
+
+                    const result = await fetch(
+                        "http://192.168.1.30:3000/removeFiles",
+                        options
+                    );
+
+                    console.log("result", await result.json());
+                    await this.refreshFiles();
+                };
+
+                handleInputChange = (e) => {
+                    this.setState({
+                        newFileName: e.target.value,
+                    });
+                };
+
+                renameFile = async (oldFileName, newFileName) => {
+                    const options = {
+                        method: "POST",
+                        headers: {
+                            Accept: "application/json, text/plain, */*",
+                            "Content-type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            oldFileName: oldFileName,
+                            newFileName: newFileName,
+                        }),
+                    };
+
+                    const result = await fetch(
+                        "http://192.168.1.30:3000/renameFile",
+                        options
+                    );
+
+                    console.log("result", await result.json());
+                    await this.refreshFiles();
+                    this.setState({
+                        oldFileName: "",
+                        newFileName: "",
+                    });
+                    this.state.button.click();
+                };
+
+                componentDidMount = async () => {
+                    await this.refreshFiles();
+                };
+
+                render() {
+                    return (
+                        <div className="w-full h-screen bg-gray-900 overflow-scroll grid grid-rows-[15%_85%]">
+                            <div className="flex flex-col gap-4 justify-center items-center text-4xl font-semibold text-white">
+                                <span className="self-center font-semibold whitespace-nowrap pt-4">
+                                    React Client
+                                </span>
+                                <div className="flex gap-4">
+                                    <button
+                                        ref={(node) =>
+                                            (this.state.button = node)
+                                        }
+                                        className="hidden"
+                                        data-modal-target="dialog"
+                                        data-modal-toggle="dialog"
+                                    >
+                                        Open Dialog
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                                        onClick={() => {
+                                            this.refreshFiles();
+                                        }}
+                                    >
+                                        Reload
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                                        onClick={() => {
+                                            this.selectAllFiles();
+                                        }}
+                                    >
+                                        Select All
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                                        onClick={() => {
+                                            this.deselectAllFiles();
+                                        }}
+                                    >
+                                        Deselect All
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                                        onClick={() => {
+                                            this.removeFiles(
+                                                this.state.files
+                                                    .filter((el) => el.checked)
+                                                    .map((el) => el.fileName)
+                                            );
+                                        }}
+                                    >
+                                        Remove Selected
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="grid grid-flow-row-dense grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-4 p-4 h-max">
+                                {this.state.files.map((el, i) => (
+                                    <Image
+                                        key={JSON.stringify(el)}
+                                        fileName={el.fileName}
+                                        checked={el.checked}
+                                        openDialog={this.openDialog.bind(this)}
+                                        removeFiles={this.removeFiles.bind(
+                                            this
+                                        )}
+                                        toggleFile={this.toggleFile.bind(this)}
+                                    />
+                                ))}
+                            </div>
+                            <div
+                                id="dialog"
+                                tabIndex="-1"
+                                aria-hidden="true"
+                                className="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full"
+                            >
+                                <div className="relative w-full max-w-md max-h-full">
+                                    <div className="relative rounded-lg shadow bg-gray-700">
+                                        <button
+                                            type="button"
+                                            className="absolute top-3 right-2.5 bg-transparent rounded-lg text-sm p-1.5 ml-auto inline-flex items-center hover:bg-gray-800 hover:text-white"
+                                            data-modal-hide="dialog"
+                                        >
+                                            <svg
+                                                aria-hidden="true"
+                                                className="w-5 h-5"
+                                                fill="white"
+                                                viewBox="0 0 20 20"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                            >
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                    clipRule="evenodd"
+                                                ></path>
+                                            </svg>
+                                            <span className="sr-only">
+                                                Close modal
+                                            </span>
+                                        </button>
+                                        <div className="px-6 py-6 lg:px-8">
+                                            <h3
+                                                id="dialog-header"
+                                                className="mb-4 text-xl font-medium text-white"
+                                            >
+                                                Rename File
+                                            </h3>
+                                            <div
+                                                id="dialog-form"
+                                                className="space-y-6"
+                                            >
+                                                <div className="flex">
+                                                    <input
+                                                        type="text"
+                                                        name="newFileName"
+                                                        className="border text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 bg-gray-600 border-gray-500 placeholder-gray-400 text-white"
+                                                        placeholder="Name"
+                                                        required
+                                                        value={
+                                                            this.state
+                                                                .newFileName
+                                                        }
+                                                        onChange={(e) => {
+                                                            this.handleInputChange(
+                                                                e
+                                                            );
+                                                        }}
+                                                    />
+                                                </div>
+                                                <button
+                                                    className="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                                                    onClick={() => {
+                                                        this.renameFile(
+                                                            this.state
+                                                                .oldFileName,
+                                                            this.state
+                                                                .newFileName
+                                                        );
+                                                    }}
+                                                >
+                                                    Rename
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+            }
+            ReactDOM.render(<Images />, document.getElementById("react-app"));
+        </script>
+        <script src="/js/script.js" defer></script>
+    </body>
+</html>

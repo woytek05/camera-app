@@ -1,0 +1,27 @@
+{
+    "dependencies": {
+        "autoprefixer": "^10.4.14",
+        "concurrently": "^8.2.0",
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "express-handlebars": "^5.3.5",
+        "flowbite": "^1.6.5",
+        "formidable": "^1.2.2",
+        "nodemon": "^2.0.22"
+    },
+    "scripts": {
+        "build:css": "npx tailwindcss -i input.css -o ./static/output.css --watch",
+        "server": "nodemon server.js",
+        "react-client": "nodemon react-client.js",
+        "dev": "concurrently 'npm:server' 'npm:react-client' 'npm:build:css'"
+    },
+    "name": "server",
+    "version": "1.0.0",
+    "main": "server.js",
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "devDependencies": {
+        "tailwindcss": "^3.3.2"
+    }
+}
